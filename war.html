@@ -1,0 +1,292 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>WAR – Conquista Mundial</title>
+<style>
+:root{color-scheme:dark;--bg:#10151c;--pn:#1a222d;--tx:#e8edf3;--mu:#8b97a6;--ac:#e0b341;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font:14px system-ui,sans-serif;display:grid;grid-template-columns:230px 1fr 270px;grid-template-rows:auto 1fr 240px;height:100vh;overflow:hidden}
+#top{grid-column:2;grid-row:1;text-align:center;padding:6px}
+#ptag{display:inline-block;min-width:200px;padding:8px 28px;border-radius:8px;font-size:18px;font-weight:700;color:#111;box-shadow:0 2px 8px #0008}#ptag:empty{display:none}
+#left,#right{background:var(--pn);padding:10px;box-sizing:border-box;overflow:auto;font-size:13px;grid-row:1/4}#left{grid-column:1}#right{grid-column:3;display:flex;flex-direction:column;gap:8px}
+#act{flex:1;overflow:auto}#dicep{border-top:1px solid #3d4b5f;padding-top:6px;min-height:210px;text-align:center}
+.mc{display:inline-block;background:#2b3747;border-radius:4px;padding:2px 6px;margin:2px;font-size:12px}h4{margin:12px 0 4px}
+#bot{grid-column:2;grid-row:3;display:flex;gap:8px;padding:6px;box-sizing:border-box;height:240px;min-height:0}#blog{flex:1.3;overflow:auto;background:var(--pn);border-radius:8px;padding:6px 8px;font-size:12px;color:var(--mu)}#chat{flex:1.3;display:flex;flex-direction:column;background:var(--pn);border-radius:8px;padding:6px;min-width:0}#cm{flex:1;overflow:auto;font-size:14px}#ci{flex:1;min-width:0;background:#10151c;color:var(--tx);border:1px solid #3d4b5f;border-radius:6px;padding:5px}
+@media(max-width:900px){body{display:block;height:auto;overflow:auto}#bot{height:300px}}
+#map{grid-column:2;grid-row:2;min-width:0;overflow:auto}#map svg{width:100%;height:auto;max-height:calc(100vh - 56px - 250px);display:block;background:#0b3a5c}
+#side{display:none}
+button,select{background:#2b3747;color:var(--tx);border:1px solid #3d4b5f;border-radius:6px;padding:7px 10px;cursor:pointer;margin:2px;font:inherit}
+button.p{background:var(--ac);color:#111;font-weight:700}.sel{outline:3px solid var(--ac)}
+.pl{display:flex;gap:6px;align-items:center;padding:3px 5px;border-radius:5px;font-size:12px}.pl.on{background:#2b3747;outline:1px solid var(--ac)}
+.dot{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
+#log{font-size:12px;color:var(--mu);margin-top:8px}
+#md,#dice{position:fixed;inset:0;display:none;align-items:center;justify-content:center;background:#000a;z-index:5}
+#dice{pointer-events:none;background:#0005}
+.box{background:var(--pn);border:1px solid #3d4b5f;border-radius:10px;padding:16px;max-width:92vw;max-height:88vh;overflow:auto;text-align:center}
+.die{font-size:38px;line-height:1;margin:1px}.card{width:105px;height:90px;vertical-align:top;font-size:12px}.card b{font-size:26px}
+text{pointer-events:none}
+</style></head><body>
+<div id="left"></div><div id="top"><span id="ptag"></span><span id="tmr" style="margin-left:12px;font-size:18px;font-weight:700"></span></div><div id="map"></div><div id="bot"><div id="blog"></div><div id="chat"><b>💬 Chat (abas locais)</b><div id="cm"></div><div style="display:flex"><input id="ci" placeholder="Mensagem…" maxlength="120"><button onclick="sendC()">➤</button></div></div></div>
+<div id="right"><div id="cfg"></div><div id="act"></div><div id="dicep"><b>🎲 Dados</b><div id="db" style="color:var(--mu)">Aguardando ataque…</div></div></div><div id="side"></div>
+<div id="md"><div class="box" id="mb"></div></div>
+<script>
+const $=s=>document.querySelector(s),sl=ms=>new Promise(r=>setTimeout(r,ms)),rnd=n=>Math.floor(Math.random()*n);
+const CN=['América do Norte','América do Sul','Europa','África','Ásia','Oceania'],CB=[5,2,5,3,7,2],CC=['#d98a3d','#5cc27c','#5b8fe0','#d9c040','#c96ba8','#45c1c1'];
+const N='Alasca|Noroeste|Groenlândia|Alberta|Ontário|Quebec|Oeste EUA|Leste EUA|Am. Central|Venezuela|Peru|Brasil|Argentina|Islândia|Escandinávia|Grã-Bretanha|Europa Norte|Europa Ocid.|Europa Sul|Ucrânia|Norte África|Egito|África Orient.|Congo|África do Sul|Madagascar|Ural|Sibéria|Iakutsk|Kamchatka|Irkutsk|Mongólia|Japão|Afeganistão|China|Or. Médio|Índia|Sião|Indonésia|Nova Guiné|Austr. Ocid.|Austr. Orient.'.split('|');
+const PS='70,80 170,75 330,50 150,135 230,140 310,140 140,205 235,215 160,285 220,350 215,430 300,400 240,500 400,95 490,85 410,165 490,170 420,235 515,235 590,135 450,330 535,310 575,390 520,420 530,490 620,490 670,130 740,90 820,70 910,80 800,140 810,200 920,200 660,205 780,265 610,285 700,320 790,335 800,420 900,410 810,500 910,500'.split(' ').map(s=>s.split(',').map(Number));
+const E='0-1,0-3,0-29,1-2,1-3,1-4,2-4,2-5,2-13,3-4,3-6,4-5,4-6,4-7,5-7,6-7,6-8,7-8,8-9,9-10,9-11,10-11,10-12,11-12,11-20,13-14,13-15,14-15,14-16,14-19,15-16,15-17,16-17,16-18,16-19,17-18,17-20,18-19,18-20,18-21,18-35,19-26,19-33,19-35,20-21,20-22,20-23,21-22,21-35,22-23,22-24,22-25,22-35,23-24,24-25,26-27,26-33,26-34,27-28,27-30,27-31,27-34,28-29,28-30,29-30,29-31,29-32,30-31,31-32,31-34,33-34,33-35,33-36,34-36,34-37,35-36,36-37,37-38,38-39,38-40,39-40,39-41,40-41'.split(',').map(s=>s.split('-').map(Number));
+const A=[...Array(42)].map(()=>[]);E.forEach(([a,b])=>{A[a].push(b);A[b].push(a)});
+const CO=i=>i<9?0:i<13?1:i<20?2:i<26?3:i<38?4:5,CL=CN.map((_,c)=>[...Array(42).keys()].filter(j=>CO(j)==c));
+const COL=['#e74c3c','#3498db','#2ecc71','#f1c40f','#b36bd6','#ff9f43'],CNM=['Vermelho','Azul','Verde','Amarelo','Roxo','Laranja'],SY=['▲','■','●'];
+let G=null,step=1,AC,csel=[],hid=false,S={music:true,fx:true,speed:'slow'};
+const cur=()=>G.pl[G.turn],own=i=>G.ter.map((x,j)=>x.o==i?j:-1).filter(j=>j>=0),troops=i=>own(i).reduce((s,j)=>s+G.ter[j].t,0),full=(i,c)=>CL[c].every(j=>G.ter[j].o==i),lg=m=>{G.log.unshift(m);G.log.length=Math.min(G.log.length,40)};
+const modal=h=>{$('#mb').innerHTML=h;$('#md').style.display='flex'},closeM=()=>$('#md').style.display='none',setStep=k=>{step=k;render()};
+/* ---------- som ---------- */
+function tone(f,t,d,ty,v,f2){const o=AC.createOscillator(),g=AC.createGain();o.type=ty;o.frequency.setValueAtTime(f,t);if(f2)o.frequency.exponentialRampToValueAtTime(f2,t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(g).connect(AC.destination);o.start(t);o.stop(t+d)}
+function snd(k){try{AC=AC||new AudioContext();AC.resume();const t=AC.currentTime;
+if(k=='shot'){const n=AC.sampleRate*.3,b=AC.createBuffer(1,n,AC.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*Math.pow(1-i/n,4);const s=AC.createBufferSource(),g=AC.createGain();g.gain.value=.6;s.buffer=b;s.connect(g).connect(AC.destination);s.start(t);tone(120,t,.15,'sine',.5,40)}
+else if(k=='def'){tone(1200,t,.25,'triangle',.4,700);tone(1800,t,.15,'square',.1,900)}
+else if(k=='tick')tone(500,t,.04,'square',.05);
+else [523,659,784,1047].forEach((f,i)=>tone(f,t+i*.13,.3,'triangle',.25))}catch(e){}}
+/* ---------- início ---------- */
+function setup(){modal('<h2>⚔ WAR – Conquista Mundial</h2><p>Jogadores: <select id="np" onchange="setup2()">'+[3,4,5,6].map(n=>`<option ${n==4?'selected':''}>${n}</option>`).join('')+'</select></p><div id="sl"></div><button class="p" onclick="start()">Iniciar partida</button>');setup2()}
+function setup2(){const n=+$('#np').value;$('#sl').innerHTML=[...Array(n)].map((_,i)=>`<p><span class="dot" style="background:${COL[i]}"></span> <input id="n${i}" placeholder="${CNM[i]}" size="9" maxlength="12"> <select id="b${i}"><option value="0">Humano</option><option value="1">Bot Fácil</option><option value="2" ${i?'selected':''}>Bot Médio</option><option value="3">Bot Difícil</option></select></p>`).join('')}
+function start(){const n=+$('#np').value;G={pl:[],ter:[...Array(42)].map(()=>({o:-1,t:0})),turn:0,phase:'claim',left:0,trades:0,conqd:false,sel:null,mv:[],elim:{},deck:[],lock:false,busy:false,over:false,log:[]};
+for(let i=0;i<n;i++)G.pl.push({n:($('#n'+i).value.replace(/[<>&"]/g,'').trim()||CNM[i]),c:COL[i],bot:+$('#b'+i).value,alive:true,cards:[]});
+for(let i=0;i<42;i++)G.deck.push({s:i%3,t:i});G.deck.push({s:3,t:-1},{s:3,t:-1});
+let pool=[];for(let i=0;i<n;i++)pool.push({k:'d',p:i});[[4,1],[4,3],[0,3],[0,5],[2,1,1],[2,5,1]].forEach(a=>pool.push({k:'c',c:[a[0],a[1]],x:a[2]}));pool.push({k:'t18'},{k:'t24'});
+G.pl.forEach((p,i)=>{const ok=pool.filter(o=>!(o.k=='d'&&o.p==i)),o=ok[rnd(ok.length)];pool.splice(pool.indexOf(o),1);p.obj=o});
+music();snd('tick');closeM();lg('Distribuição: cada jogador ocupa um território cinza com 2 soldados.');loop()}
+const objText=o=>o.k=='d'?`Eliminar o jogador ${G.pl[o.p].n}`:o.k=='c'?`Conquistar ${CN[o.c[0]]} e ${CN[o.c[1]]}${o.x?' e mais 1 continente à escolha':''}`:o.k=='t18'?'Conquistar 18 territórios com pelo menos 2 soldados em cada':'Conquistar 24 territórios';
+function done(i){const o=G.pl[i].obj,m=own(i);if(o.k=='d')return!G.pl[o.p].alive&&G.elim[o.p]==i;if(o.k=='t18')return m.filter(j=>G.ter[j].t>=2).length>=18;if(o.k=='t24')return m.length>=24;const f=CN.map((_,c)=>full(i,c));return o.c.every(c=>f[c])&&(!o.x||f.filter(x=>x).length>2)}
+function win(i){G.over=true;snd('win');const p=G.pl[i];modal(`<h2>🏆 <span style="color:${p.c}">${p.n}</span> venceu!</h2><p>${p.obj&&done(i)?'Objetivo cumprido: '+objText(p.obj):'Último jogador restante.'}</p><button class="p" onclick="backLobby()">Voltar ao lobby</button>`);render()}
+const objM=()=>modal(`<h3>🎯 Carta-Objetivo</h3><div style="border:2px solid ${cur().c};border-radius:10px;padding:18px;max-width:320px;background:#232d3b"><b style="color:${cur().c}">${cur().n}</b><p style="font-size:16px">${objText(cur().obj)}</p></div><p style="color:var(--mu)">Mantenha em segredo!</p><button class="p" onclick="closeM()">Entendi</button>`);
+/* ---------- turnos ---------- */
+function adv(){do{G.turn=(G.turn+1)%G.pl.length}while(!cur().alive)}
+function loop(){render();if(!G||G.over)return;if(cur().bot&&!G.busy){G.busy=true;setTimeout(botTurn,500)}}
+function claim(i){G.ter[i]={o:G.turn,t:2};lg(`${cur().n} ocupou ${N[i]}`);snd('def');if(G.ter.every(x=>x.o>=0)){G.turn=0;beginTurn()}else adv();loop()}
+function beginTurn(){G.phase='reinforce';G.conqd=false;G.sel=null;G.left=Math.max(3,Math.floor(own(G.turn).length/2))+CN.reduce((s,_,c)=>s+(full(G.turn,c)?CB[c]:0),0);lg(`— Turno de ${cur().n}: ${G.left} tropas (território + continentes) —`)}
+function endTurn(){const p=cur();if(G.conqd&&p.cards.length<5&&G.deck.length){p.cards.push(G.deck.splice(rnd(G.deck.length),1)[0]);lg(`${p.n} ganhou uma carta`)}adv();beginTurn();loop()}
+function nextPhase(){if(cur().bot||G.lock)return;if(G.phase=='reinforce'){if(G.left+G.cb.reduce((a,b)=>a+b,0)>0)return alert('Distribua todas as tropas (o bônus de continente só vale no continente de origem).');if(cur().cards.length>=5&&findSet(cur().cards))return alert('Com 5 cartas você deve trocar.');G.phase='attack';G.sel=null}else if(G.phase=='attack'){G.phase='move';G.sel=null;G.mv=G.ter.map((t,i)=>t.o==G.turn?t.t-1:0)}else if(G.phase=='move')return endTurn();render()}
+/* ---------- cartas ---------- */
+const okSet=a=>{const n=a.filter(c=>c.s<3).map(c=>c.s),z=new Set(n).size;return a.length==3&&(z<=1||z==n.length)};
+function findSet(cs){for(let a=0;a<cs.length;a++)for(let b=a+1;b<cs.length;b++)for(let c=b+1;c<cs.length;c++)if(okSet([cs[a],cs[b],cs[c]]))return[a,b,c];return null}
+function trade(pi,idx){const p=G.pl[pi],cs=idx.map(i=>p.cards[i]),k=G.trades++,b=k<5?4+2*k:15+5*(k-5);G.left+=b;let ex=0;cs.forEach(c=>{if(c.t>=0&&G.ter[c.t].o==pi){G.ter[c.t].t+=2;ex+=2}});p.cards=p.cards.filter((_,i)=>!idx.includes(i));G.deck.push(...cs);lg(`${p.n} trocou cartas: +${b} tropas${ex?` e +${ex} nos países das cartas`:''}`);snd('win')}
+function cardsM(){const p=cur();modal(`<h3>Cartas (${p.cards.length}/5)</h3><p style="color:var(--mu);max-width:420px">Troque 3 do mesmo símbolo (coringa vale qualquer um, sem bônus de país). Carta de país seu: +2 tropas nele. Cartas só são ganhas ao conquistar um território no turno.</p>`+p.cards.map((c,i)=>`<button class="card ${csel.includes(i)?'sel':''}" onclick="pick(${i})"><b>${c.s<3?SY[c.s]:'▲■●'}</b><br>${c.t>=0?N[c.t]+(G.ter[c.t].o==G.turn?' (+2)':''):'Coringa'}</button>`).join('')+'<p><button class="p" onclick="doTrade()">Trocar selecionadas</button><button onclick="closeM()">Fechar</button></p>')}
+function pick(i){csel.includes(i)?csel=csel.filter(x=>x!=i):csel.length<3&&csel.push(i);cardsM()}
+function doTrade(){const p=cur();if(G.phase!='reinforce')return alert('Troque cartas na fase de reforço.');if(!okSet(csel.map(i=>p.cards[i])))return alert('Escolha 3 cartas do mesmo símbolo.');trade(G.turn,csel);csel=[];cardsM();render()}
+/* ---------- combate ---------- */
+async function rollUI(ra,rd,la,ld,bot){const el=$('#dice'),box=$('#db'),fc=v=>'⚀⚁⚂⚃⚄⚅'[v-1],row=(A,c)=>`<div style="color:${c}">${A.map(v=>`<span class="die">${fc(v)}</span>`).join('')}</div>`;
+const draw=(a,d,r)=>box.innerHTML=`<div>ATAQUE</div>${row(a,'#ff6b6b')}<div>DEFESA</div>${row(d,'#6bb5ff')}${r||''}`;el.style.display='flex';
+for(let i=0;i<(bot?4:7);i++){draw(ra.map(()=>1+rnd(6)),rd.map(()=>1+rnd(6)));snd('tick');await sl(90)}
+draw(ra,rd,`<p><b>Atacante perde ${la} · Defensor perde ${ld}</b></p>`);if(ld)snd('shot');if(la)setTimeout(()=>snd('def'),250);await sl(bot?650:1500);el.style.display='none'}
+let askMove=(mn,mx)=>new Promise(r=>{modal(`<h3>Território conquistado!</h3><p>Mover quantos soldados?</p><input type="range" id="rg" min="${mn}" max="${mx}" value="${mn}" oninput="rv.textContent=this.value"> <b id="rv">${mn}</b><p><button class="p" id="okm">Mover</button></p>`);$('#okm').onclick=()=>{const v=+$('#rg').value;closeM();r(v)}});
+async function attack(f,t){G.lock=true;const F=G.ter[f],D=G.ter[t],me=G.turn,P=cur(),a=Math.min(3,F.t-1),d=Math.min(3,D.t),r=n=>[...Array(n)].map(()=>1+rnd(6)).sort((x,y)=>y-x),ra=r(a),rd=r(d);let la=0,ld=0;
+for(let i=0;i<Math.min(a,d);i++)ra[i]>rd[i]?ld++:la++;
+await rollUI(ra,rd,la,ld,P.bot);F.t-=la;D.t-=ld;lg(`${P.n} atacou ${N[t]} (${G.pl[D.o].n}) de ${N[f]}: 🎲 ${ra.join(' ')} × ${rd.join(' ')} → perdas ${la} x ${ld}`);
+if(D.t<=0){const def=D.o,mn=a,mx=F.t-1;let m=mn;if(!P.bot&&mx>mn)m=await askMove(mn,mx);else if(P.bot==3&&mx>mn)m=Math.ceil((mn+mx)/2);
+F.t-=m;D.o=me;D.t=m;G.conqd=true;snd('win');lg(`${P.n} conquistou ${N[t]}!`);
+if(!own(def).length){const Q=G.pl[def];Q.alive=false;G.elim[def]=me;await takeCards(Q,P);lg(`💀 ${Q.n} foi eliminado por ${P.n}`);
+G.pl.forEach((q,i)=>{if(q.alive&&q.obj.k=='d'&&q.obj.p==def&&i!=me)q.obj={k:'t24'}})}
+if(done(me)||G.pl.filter(x=>x.alive).length==1)win(me)}
+G.lock=false;render()}
+/* ---------- humano ---------- */
+function clickT(i){if(!G||G.over||G.lock||G.busy||cur().bot)return;const T=G.ter[i],me=G.turn;
+if(G.phase=='claim'){if(T.o<0)claim(i);return}
+if(G.phase=='reinforce'){if(T.o!=me)return;const c=CO(i);let k=Math.min(step,G.cb[c]);if(k>0)G.cb[c]-=k;else{k=Math.min(step,G.left);G.left-=k}if(k>0){T.t+=k;snd('tick');if(G.left+G.cb.reduce((a,b)=>a+b,0)==0&&!findSet(cur().cards)){G.phase='attack';G.sel=null;dlset()}render()}return}
+if(G.phase=='attack'){if(T.o==me){G.sel=T.t>1?i:null;render()}else if(G.sel!=null&&A[G.sel].includes(i))attack(G.sel,i).then(()=>{if(G.sel!=null&&(G.ter[G.sel].o!=me||G.ter[G.sel].t<2))G.sel=null;render()});else if(G.sel!=null){G.sel=null;render()}return}
+if(G.phase=='move'){if(T.o!=me){G.sel=null;render();return}if(G.sel==null||G.sel==i)G.sel=G.sel==i?null:i;else if(!A[G.sel].includes(i))G.sel=i;else if(G.mv[G.sel]>0){const k=Math.min(step,G.mv[G.sel]);G.mv[G.sel]-=k;G.ter[G.sel].t-=k;T.t+=k}render()}}
+/* ---------- bots ---------- */
+async function botTurn(){const p=cur(),L=p.bot,me=G.turn,thr=i=>A[i].filter(j=>G.ter[j].o!=me).reduce((s,j)=>s+G.ter[j].t,0),objC=i=>p.obj.k=='c'&&p.obj.c.includes(CO(i));
+if(G.phase=='claim'){let best=-1,bs=-1e9;[...G.ter.keys()].filter(i=>G.ter[i].o<0).forEach(i=>{let s=Math.random()*3;if(L>1)s+=CL[CO(i)].filter(j=>G.ter[j].o==me).length*3+A[i].filter(j=>G.ter[j].o==me).length;if(L>2&&objC(i))s+=5;if(s>bs){bs=s;best=i}});G.busy=false;claim(best);return}
+await sl(300);let ts;while((ts=findSet(p.cards)))trade(me,ts);
+const mine=own(me);while(G.left>0||G.cb.some(x=>x>0)){const ci=G.cb.findIndex(x=>x>0),base=ci>=0?mine.filter(i=>CO(i)==ci):mine;let k;if(L==1)k=base[rnd(base.length)];else{const c=base.filter(i=>thr(i)>0),pl=c.length?c:base;k=pl.map(i=>[i,thr(i)+(L>2&&objC(i)?5:0)+Math.random()*(L==2?10:4)]).sort((a,b)=>b[1]-a[1])[0][0]}G.ter[k].t++;if(ci>=0)G.cb[ci]--;else G.left--}
+snd('tick');G.phase='attack';render();await sl(600);
+const lim=[0,4,10,25][L];let n=0;
+while(n++<lim&&!G.over){let best=null,bs=-1e9;for(const f of own(me)){const F=G.ter[f];if(F.t<2)continue;for(const t of A[f]){const D=G.ter[t];if(D.o==me)continue;const ad=F.t-1-D.t;if(L==1&&(ad<-2||Math.random()>.6))continue;if(L==2&&ad<0)continue;if(L==3&&!(ad>=1||(ad>=0&&F.t>=6)))continue;
+let s=ad+Math.random()*(L==1?6:1);if(L>1){if(CL[CO(t)].filter(j=>G.ter[j].o!=me).length==1)s+=3;if(D.t==1)s+=1}if(L>2&&(objC(t)||(p.obj.k=='d'&&p.obj.p==D.o)))s+=3;if(s>bs){bs=s;best=[f,t]}}}
+if(!best)break;await attack(best[0],best[1])}
+if(L>1&&!G.over){G.phase='move';for(const i of own(me)){const F=G.ter[i];if(F.t>1&&!A[i].some(j=>G.ter[j].o!=me)){const tg=A[i].filter(j=>G.ter[j].o==me&&A[j].some(k=>G.ter[k].o!=me)).sort((a,b)=>thr(b)-thr(a));if(tg.length){G.ter[tg[0]].t+=F.t-1;F.t=1}}}render();await sl(400)}
+G.busy=false;if(!G.over)endTurn()}
+/* ---------- desenho ---------- */
+function render(){if(!G)return;const p=cur();let s='<svg viewBox="0 0 1000 560">';
+E.forEach(([a,b])=>{const [x1,y1]=PS[a],[x2,y2]=PS[b];s+=a==0&&b==29?`<path d="M70 80 L0 70 M910 80 L1000 70" stroke="#7fa6c0" stroke-opacity=".5" stroke-width="2"/>`:`<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#7fa6c0" stroke-opacity=".5" stroke-width="2"/>`});
+G.ter.forEach((t,i)=>{const [x,y]=PS[i],col=t.o<0?'#8a8f98':G.pl[t.o].c,se=G.sel==i,tg=G.sel!=null&&G.phase=='attack'&&A[G.sel].includes(i)&&t.o!=G.turn,k=Math.floor(t.t/10);
+s+=`<g data-i="${i}" style="cursor:pointer"><title>${N[i]} – ${CN[CO(i)]} (cada ■ = 10 soldados)</title><circle cx="${x}" cy="${y}" r="22" fill="${col}" stroke="${se?'#fff':tg?'#ff0':CC[CO(i)]}" stroke-width="${se||tg?5:3}"/><text x="${x}" y="${y+5}" text-anchor="middle" font-size="15" font-weight="700" fill="#111">${t.t||''}</text><text x="${x}" y="${y-27}" text-anchor="middle" font-size="10" fill="#fff" stroke="#000" stroke-width="3" paint-order="stroke">${N[i]}</text>`;
+for(let j=0;j<k;j++)s+=`<rect x="${x-k*4.5+j*9+.5}" y="${y+25}" width="7" height="7" fill="#fff" stroke="#000"/>`;s+='</g>'});
+$('#map').innerHTML=s+'</svg>';
+const ph={claim:'Distribuição: ocupe um território cinza (+2 soldados)',reinforce:`Reforço: coloque ${G.left} tropa(s)`,attack:'Ataque: toque num território seu e depois num vizinho inimigo',move:'Movimentação: toque na origem e depois num vizinho seu'}[G.phase];
+let h=`<h3 style="margin:0 0 4px">Vez: <span style="color:${p.c}">${p.n}</span> ${p.bot?'🤖 Bot '+['','Fácil','Médio','Difícil'][p.bot]:''}</h3><p style="margin:4px 0">${ph}</p>`;
+if(!p.bot&&!G.over)h+=`<div>Tropas por toque: ${[1,5,10].map(k=>`<button class="${step==k?'p':''}" onclick="setStep(${k})">${k}</button>`).join('')}</div><div><button onclick="cardsM()">🃏 Cartas (${p.cards.length}/5)</button><button onclick="objM()">🎯 Objetivo</button>${G.phase!='claim'?`<button class="p" onclick="nextPhase()">${{reinforce:'Ir ao ataque ▶',attack:'Ir à movimentação ▶',move:'Encerrar turno ✔'}[G.phase]}</button>`:''}</div>`;
+h+='<div style="margin-top:8px">'+G.pl.map((q,i)=>`<div class="pl ${i==G.turn?'on':''}"><span class="dot" style="background:${q.c}"></span><b>${q.n}</b>${q.bot?' 🤖':''} ${q.alive?`· ${own(i).length} terr · ${troops(i)} tropas · ${q.cards.length} 🃏`:'💀'}</div>`).join('')+'</div>';
+h+='<div style="font-size:11px;color:var(--mu);margin-top:8px">■ = grupo de 10 soldados · Anel = continente: '+CN.map((c,i)=>`<span style="color:${CC[i]}">${c} (+${CB[i]})</span>`).join(', ')+'</div><div id="log">'+G.log.slice(0,8).join('<br>')+'</div>';
+$('#side').innerHTML=h}
+$('#map').onclick=e=>{const g=e.target.closest('[data-i]');if(g)clickT(+g.dataset.i);else desel()};
+/* ---- v2: layout, config, bônus por continente, cartas no início do turno ---- */
+const snd0=snd;snd=k=>{if(S.fx)snd0(k)};
+let mt=null,mi=0;
+function music(){clearInterval(mt);mt=null;if(!S.music)return;try{AC=AC||new AudioContext();AC.resume()}catch(e){return}const sc=[220,262,330,392,330,262,196,247,294,392,294,247];mt=setInterval(()=>{try{const t=AC.currentTime;tone(sc[mi++%12],t,.9,'triangle',.05);if(mi%12==1)tone(110,t,2.6,'sine',.07)}catch(e){}},450)}
+function cfgM(){modal(`<h3>⚙ Configurações</h3><p><label><input type="checkbox" ${S.music?'checked':''} onchange="S.music=this.checked;music()"> 🎵 Música</label></p><p><label><input type="checkbox" ${S.fx?'checked':''} onchange="S.fx=this.checked"> 🔊 Efeitos sonoros</label></p><p>🎲 Dados: <select onchange="S.speed=this.value"><option value="slow" ${S.speed=='slow'?'selected':''}>Animação lenta</option><option value="fast" ${S.speed=='fast'?'selected':''}>Animação rápida</option></select></p><button onclick="closeM()">Fechar</button>`)}
+const quit=()=>{if(!G||NET)return confirm('Sair da partida?')&&location.reload();const v=G.pl[G.view!=null?G.view:G.turn];modal(`<h3>🚪 Sair</h3><p><button onclick='leave()'>Abandonar como ${v.n} (vira AFK)</button></p><p><button onclick='location.reload()'>Sair e voltar ao menu</button></p><button onclick='closeM()'>Cancelar</button>`)};
+$('#cfg').innerHTML='<button onclick="cfgM()">⚙ Configurações</button><button onclick="quit()">🚪 Sair</button>';
+function beginTurn(){G.phase='reinforce';G.conqd=false;G.sel=null;G.left=Math.max(3,Math.floor(own(G.turn).length/2));G.tn=(G.tn||0)+1;G.cb=CN.map((_,c)=>full(G.turn,c)?CB[c]:0);lg(`— Turno de ${cur().n}: ${G.left} tropas livres${G.cb.some(x=>x)?' + bônus de continente':''} —`);dlset();if(!cur().bot&&!cur().afk)setTimeout(()=>pop('c'),50)}
+function cardsM(){const p=cur(),st=findSet(p.cards);modal(`<h3>🃏 Cartas de <span style="color:${p.c}">${p.n}</span> (${p.cards.length}/5)</h3><p><b>${st?'✅ Você tem troca disponível!':'❌ Nenhuma troca disponível.'}</b></p><p style="color:var(--mu);max-width:420px">Troque 3 do mesmo símbolo (coringa vale qualquer um, sem bônus de país). Carta de país seu: +2 tropas nele. Cartas só são ganhas ao conquistar um território no turno.</p>`+p.cards.map((c,i)=>`<button class="card ${csel.includes(i)?'sel':''}" onclick="pick(${i})"><b>${c.s<3?SY[c.s]:'▲■●'}</b><br>${c.t>=0?N[c.t]+(G.ter[c.t].o==G.turn?' (+2)':''):'Coringa'}</button>`).join('')+'<p><button class="p" onclick="doTrade()">Trocar selecionadas</button><button onclick="closeM()">Fechar</button></p>')}
+async function rollUI(ra,rd,la,ld,bot){const box=$('#db'),fc=v=>'⚀⚁⚂⚃⚄⚅'[v-1],row=(A,c)=>`<div style="color:${c}">${A.map(v=>`<span class="die">${fc(v)}</span>`).join('')}</div>`,fast=S.speed=='fast',draw=(a,d,r)=>box.innerHTML=`<div style="color:var(--mu)">${cur().n} ataca</div><div>ATAQUE</div>${row(a,'#ff6b6b')}<div>DEFESA</div>${row(d,'#6bb5ff')}${r||''}`;
+for(let i=0;i<(fast?3:10);i++){draw(ra.map(()=>1+rnd(6)),rd.map(()=>1+rnd(6)));snd('tick');await sl(fast?60:100)}
+draw(ra,rd,`<p><b>Atacante perde ${la} · Defensor perde ${ld}</b></p>`);if(ld)snd('shot');if(la)setTimeout(()=>snd('def'),250);await sl(fast?250:1100)}
+const r0=render;
+render=()=>{if(!G)return;r0();const p=cur();if(!p.bot&&MYI<0)G.view=G.turn;const vi=G.view!=null?G.view:G.pl.findIndex(x=>!x.bot),v=G.pl[vi],cb=G.cb||[],tg=$('#ptag');tg.textContent=(p.bot?'🤖 ':'')+p.n;tg.style.background=p.c;
+let L='';
+if(v)L+=`<h4 style="margin-top:0">🎯 Objetivo (${v.n}) <button onclick="hid=!hid;render()">${hid?'👁':'🙈'}</button></h4><p>${hid?'••••••':objText(v.obj)}</p><h4>🃏 Cartas ${v.cards.length}/5</h4>${v.cards.map(c=>`<span class="mc">${c.s<3?SY[c.s]:'★'} ${c.t>=0?N[c.t]:'Coringa'}</span>`).join('')||'<i>Sem cartas</i>'}<p>${findSet(v.cards)?'✅ Troca disponível':'Sem troca disponível'}</p><h4>🌍 Bônus de continente</h4>`+CN.map((n,c)=>{const k=CL[c].filter(j=>G.ter[j].o==vi).length,f=k==CL[c].length;return `<div style="color:${CC[c]}">${n} +${CB[c]} <span style="color:var(--mu)">${k}/${CL[c].length}${f?' ✔'+(vi==G.turn&&G.phase=='reinforce'?' (restam '+(cb[c]||0)+')':''):''}</span></div>`}).join('')+'<div style="font-size:11px;color:var(--mu)">O bônus só pode ser colocado no próprio continente.</div>';else L+='<p>Só bots na partida.</p>';
+L+='<h4>👥 Jogadores</h4>'+G.pl.map((q,i)=>`<div class="pl ${i==G.turn?'on':''}"><span class="dot" style="background:${q.c}"></span><b>${q.n}</b>${q.bot?' 🤖':''} ${q.alive?`· ${own(i).length} terr · ${troops(i)} tropas · ${q.cards.length} 🃏`:'💀'}</div>`).join('');$('#left').innerHTML=L;$('#blog').innerHTML='<b style="color:var(--tx)">⚔ Relatório de combate</b><br>'+G.log.slice(0,40).join('<br>');
+const st=['reinforce','attack','move'],lb=['Distribuição','Ataque','Movimentação'];
+let a=G.phase=='claim'?'<b>Ocupação inicial</b><p>Toque num território cinza para colocar 2 soldados.</p>':'<div>'+st.map((k,i)=>`<span style="${G.phase==k?'color:var(--ac);font-weight:700':'color:var(--mu)'}">${lb[i]}</span>`).join(' ▸ ')+'</div><p>'+({reinforce:`Toque nos seus territórios para colocar tropas. Livres: <b>${G.left}</b>`+cb.map((b,c)=>b?` · <b>${b}</b> só em ${CN[c]}`:'').join(''),attack:'Toque num território seu (mais de 1 soldado) e depois num vizinho inimigo.',move:'Toque na origem e depois num vizinho seu.'}[G.phase])+'</p>';
+if((MYI<0?!p.bot:G.turn==MYI)&&!G.over)a+=`<div>Tropas por toque: ${[1,5,10].map(k=>`<button class="${step==k?'p':''}" onclick="setStep(${k})">${k}</button>`).join('')}</div><div><button onclick="objM()">🎯 Objetivo</button><button onclick="cardsM()">🃏 Cartas (${p.cards.length}/5)</button></div>`+(G.phase!='claim'?`<p><button class="p" onclick="nextPhase()">${{reinforce:'Ir ao ataque ▶',attack:'Ir à movimentação ▶',move:'Encerrar turno ✔'}[G.phase]}</button></p>`:'');else if(p.bot)a+='<p>🤖 Bot jogando…</p>';
+$('#act').innerHTML=a};
+/* ---- v3: tempo, AFK, FAQ, chat ---- */
+const dlset=()=>{if(G)G.dl=G.tl?Date.now()+G.tl*1000:0};
+const tmc=v=>{tcw.style.display=v=='c'?'inline':'none'};
+function setup(){modal(`<h2>⚔ WAR – Conquista Mundial</h2><p>Jogadores: <select id='np' onchange='setup2()'>${[3,4,5,6].map(n=>`<option ${n==4?'selected':''}>${n}</option>`).join('')}</select></p><div id='sl'></div><p>⏱ Tempo por fase: <select id='tm' onchange='tmc(this.value)'><option value='0'>Sem tempo</option><option value='60'>1 minuto</option><option value='180'>3 minutos</option><option value='c'>Personalizada</option></select><span id='tcw' style='display:none'> <input type='number' id='tc' value='90' min='10' max='3600' style='width:70px'> s</span></p><button class='p' onclick='start()'>Iniciar partida</button>`);setup2()}
+const start0=start;start=()=>{const tv=$('#tm').value,tl=tv=='c'?Math.max(10,Math.min(3600,+$('#tc').value||90)):+tv;start0();G.tl=tl;dlset()};
+const claim0=claim;claim=i=>{claim0(i);dlset()};
+const np0=nextPhase;nextPhase=()=>{if(!G)return;const q=cur(),ph=G.phase;np0();if(G&&(G.phase!=ph||cur()!==q)){q.to=0;dlset()}};
+const cm0=cardsM;cardsM=()=>{cm0();$('#mb').innerHTML=$('#mb').innerHTML.replace('Troque 3 do mesmo símbolo (coringa vale qualquer um, sem bônus de país). Carta de país seu: +2 tropas nele.','Troque 3 cartas iguais ou 3 diferentes (o coringa vale qualquer símbolo). Se o território da carta for seu, ele ganha +2 tropas; se não for, a troca vale igual, só sem esse bônus.')};
+function autoPlace(){const m=own(G.turn);while(G.left>0||G.cb.some(x=>x>0)){const ci=G.cb.findIndex(x=>x>0),b=ci>=0?m.filter(i=>CO(i)==ci):m,k=b[rnd(b.length)];G.ter[k].t++;if(ci>=0)G.cb[ci]--;else G.left--}}
+const freeT=()=>{const f=[...G.ter.keys()].filter(i=>G.ter[i].o<0);return f[rnd(f.length)]};
+function afkTurn(){if(!G||G.over)return;closeM();G.busy=false;if(G.phase=='claim')return claim(freeT());if(G.phase=='reinforce')autoPlace();endTurn()}
+function expire(){const p=cur();p.to=(p.to||0)+1;lg(`⏱ Tempo esgotado para ${p.n}`);if(p.to>=3&&!p.afk){p.afk=true;lg(`${p.n} está AFK`)}closeM();
+if(G.phase=='claim')claim(freeT());else if(G.phase=='reinforce'){autoPlace();endTurn()}else if(G.phase=='attack'){G.phase='move';G.sel=null;G.mv=G.ter.map((t,i)=>t.o==G.turn?t.t-1:0);dlset();render()}else endTurn()}
+setInterval(()=>{if(!G||G.over)return;const p=cur(),t=$('#tmr');if(!G.tl||p.bot||p.afk||!G.dl){t.textContent='';return}const r=Math.max(0,Math.ceil((G.dl-Date.now())/1000));t.textContent='⏱ '+Math.floor(r/60)+':'+String(r%60).padStart(2,'0');t.style.color=r<=10?'#ff6b6b':'var(--tx)';if(r<=0&&!G.lock&&!G.busy&&!NETC)expire()},250);
+function leave(){const v=G.pl[G.view!=null?G.view:G.turn];v.afk=true;lg(`🚪 ${v.n} saiu da partida`);closeM();loop()}
+loop=()=>{render();if(!G||G.over)return;if(G.pl.every(x=>!x.alive||x.afk)){G.over=true;modal("<h3>Partida encerrada</h3><p>Todos os jogadores saíram.</p><button class='p' onclick='location.reload()'>Menu</button>");return}const p=cur();G.seen=G.seen||{};if(!p.bot&&!p.afk&&!G.seen[G.turn]){G.seen[G.turn]=1;pop('o')}if(!G.busy&&(p.bot||p.afk)){G.busy=true;setTimeout(p.bot?botTurn:afkTurn,p.bot?500:700)}};
+function faq(){modal(`<div style='text-align:left;max-width:500px;font-size:13px'><h3>❓ Como jogar</h3><h4>Objetivo</h4><p>Cumpra primeiro a sua carta-objetivo secreta: eliminar um jogador, dominar continentes, ter 18 territórios com 2+ soldados em cada, ou 24 territórios. Se o alvo for eliminado por outro jogador, seu objetivo vira conquistar 24 territórios.</p><h4>Início</h4><p>Na sua vez, cada jogador ocupa um território cinza com 2 soldados. O ataque só começa quando todos estiverem ocupados.</p><h4>Turno (sempre nesta ordem)</h4><p><b>1. Distribuição:</b> você recebe metade dos seus territórios (mínimo 3) para colocar onde quiser. O bônus de continente dominado (América do Norte +5, Europa +5, Ásia +7, África +3, América do Sul +2, Oceania +2) só pode ser colocado dentro desse continente.<br><b>2. Ataque:</b> toque num território seu com 2+ soldados e depois num vizinho inimigo. O atacante usa até 3 dados e o defensor até 3 (máx. 6). Os maiores dados se comparam em pares e o empate favorece a defesa. Ao conquistar, escolha quantos soldados mover.<br><b>3. Movimentação:</b> mova tropas entre territórios vizinhos seus (cada soldado só uma vez) e encerre o turno.</p><h4>Cartas</h4><p>Conquistar ao menos 1 território no turno dá 1 carta (máx. 5). Troque 3 iguais ou 3 diferentes; o coringa vale qualquer símbolo. Bônus de troca: 4, 6, 8, 10, 12, 15 e +5 a cada nova. Para cada carta cujo país é seu, +2 tropas nele (sem o território, só não há esse bônus). Eliminar um jogador dá as cartas dele a você.</p><h4>Tempo e AFK</h4><p>Com tempo ligado, cada fase tem o limite escolhido. Na Distribuição, se esgotar, as tropas vão ao acaso para seus territórios e o turno termina; no Ataque, passa para a Movimentação; na Movimentação, encerra o turno. 3 estouros seguidos ou 🚪 Sair → Abandonar deixam o jogador AFK: suas tropas são distribuídas ao acaso e o turno termina sem atacar nem mover.</p><h4>Tela</h4><p>Esquerda: objetivo, cartas e bônus. Direita: ações da fase e dados. Embaixo: relatório de combate e chat (entre abas do mesmo navegador). Cada ■ no mapa = 10 soldados.</p><button class='p' onclick='closeM()'>Fechar</button></div>`)}
+$('#cfg').innerHTML="<button onclick='cfgM()'>⚙ Configurações</button><button onclick='faq()'>❓</button><button onclick='quit()'>🚪 Sair</button>";
+let bc;const chatAdd=m=>{const d=$('#cm');d.innerHTML+=`<div><b style='color:${m.c}'>${m.n}:</b> ${m.t}</div>`;d.scrollTop=1e9};
+try{bc=new BroadcastChannel('war-chat');bc.onmessage=e=>chatAdd(e.data)}catch(e){}
+function sendC(){const i=$('#ci'),t=i.value.replace(/[<>&]/g,'').trim();if(!t||!G)return;const v=G.pl[G.view!=null?G.view:G.turn],m={n:v.n,c:v.c,t};chatAdd(m);try{bc&&bc.postMessage(m)}catch(e){}i.value=''}
+$('#ci').onkeydown=e=>{if(e.key=='Enter')sendC()};
+/* ---- v4: lobby online (capability room) ---- */
+document.head.insertAdjacentHTML('beforeend','<style>#lob{display:none;position:fixed;inset:0;z-index:4;background:var(--bg);overflow:auto}.lg{display:grid;grid-template-columns:310px 1fr 250px;gap:10px;height:100vh;padding:10px;box-sizing:border-box}.lg>div{background:var(--pn);border-radius:10px;padding:10px;overflow:auto;min-width:0}#lC{display:flex;flex-direction:column}#lcm{flex:1;overflow:auto;font-size:13px;margin:6px 0}#lci{flex:1;min-width:0;background:#10151c;color:var(--tx);border:1px solid #3d4b5f;border-radius:6px;padding:7px}#lob input{background:#10151c;color:var(--tx);border:1px solid #3d4b5f;border-radius:6px;padding:7px}@media(max-width:800px){.lg{display:block;height:auto}.lg>div{margin-bottom:10px;max-height:60vh}}</style>');
+document.body.insertAdjacentHTML('beforeend','<div id="lob"></div>');
+let R=null,NICK='',SC=0,myIn=0,peers=[],reqs=[],invs=[],lastReq=0;const lastInv={};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>'&#'+c.charCodeAt(0)+';'),ls=(k,v)=>{try{if(v===undefined)return localStorage.getItem(k);localStorage.setItem(k,v)}catch(e){}},nk=p=>esc(String(p.presence.nick).slice(0,14)),clean=s=>String(s||'').replace(/[<>&"']/g,'').trim();
+const act=()=>peers.filter(p=>p.kind=='viewer'&&p.presence&&p.presence.nick),me=()=>peers.find(p=>p.sameTab);
+function roomsMap(){const m={};act().forEach(p=>{const r=p.presence.rm;if(r&&r.id>=1&&r.id<=20&&!m[r.id])m[r.id]={id:r.id,n:esc(String(r.n).slice(0,20)),max:Math.max(2,Math.min(6,+r.max||4)),pub:!!r.pub,host:p,mem:[]}});act().forEach(p=>{const s=p.presence.in;if(m[s])m[s].mem.push(p)});return m}
+function nickScr(){const l=$('#lob');l.style.display='block';l.innerHTML=`<div class='box' style='margin:12vh auto;max-width:360px'><h2>⚔ WAR – Conquista Mundial</h2><p>Escolha seu nick</p><input id='nk' maxlength='14' value='${esc(ls('warnick')||'')}' placeholder='Seu nick'><p><button class='p' onclick='enter()'>Entrar</button></p><p><button onclick='offline()'>Jogar local (sem lobby)</button></p></div>`;$('#nk').onkeydown=e=>{if(e.key=='Enter')enter()}}
+function offline(){$('#lob').style.display='none';NICK=NICK||'Jogador';setup()}
+async function enter(){const n=clean($('#nk').value).slice(0,14);if(!n)return;NICK=n;ls('warnick',n);SC=+ls('warscore')||0;snd('tick');
+try{R=typeof claude!='undefined'?await claude.use('room'):null}catch(e){R=null}
+$('#lob').innerHTML=`<div class='lg'><div id='lL'></div><div id='lC'><b>💬 Chat do lobby</b><div id='lcm'></div><div style='display:flex;gap:4px'><input id='lci' maxlength='200' placeholder='Mensagem…'><button onclick='sendL()'>➤</button></div></div><div id='lR'></div></div>`;$('#lci').onkeydown=e=>{if(e.key=='Enter')sendL()};
+if(R){R.on('_rank',m=>{RANK=Array.isArray(m.data)?m.data.slice(0,10):[];lobRender()});if(window.WARNET&&!(await login())){nickScr();return}await R.presence({nick:NICK,score:SC,in:0,rm:null});R.onPeers(c=>{peers=c.peers;const m=me();if(myIn&&m&&!m.presence.rm&&!roomsMap()[myIn]){myIn=0;R.presence({in:0});sys('A sala foi fechada.')}lobRender()});R.on('chat',onChat);R.on('req',onReq);R.on('resp',onResp);R.on('inv',onInv);R.on('gc',onGc);R.on('gs',onGs);R.on('act',onAct);R.on('show',onShow);R.on('ask',onAsk);R.on('askc',onAskc);R.on('dice',onDice);R.on('msg',onMsg);peers=R.peers()}
+lobRender()}
+function lobRender(){if(!$('#lL'))return;if(!R){$('#lL').innerHTML=`<h3>Lobby indisponível</h3><p style='color:var(--mu)'>O lobby online só funciona para quem abre o link logado numa conta com acesso. Você ainda pode jogar localmente.</p><button class='p' onclick='offline()'>🎮 Jogar local</button>`;return}
+const rm=roomsMap(),m=me(),mine=myIn&&rm[myIn],isH=!!(m&&m.presence.rm);let h=`<h3 style='margin:0 0 6px'>Salas</h3><button onclick='offline()'>🎮 Jogar local</button>`;
+h+=invs.map((v,i)=>`<div class='mc' style='display:block'>📨 ${esc(v.nick)} convidou você (sala ${+v.slot}) <button onclick='accInv(${i})'>Aceitar</button><button onclick='decInv(${i})'>Recusar</button></div>`).join('');
+if(mine)h+=`<div class='mc' style='display:block;border:1px solid var(--ac)'><b>${isH?'Sua sala':'Sala'} ${myIn}: ${mine.n}</b> ${mine.pub?'🌐':'🔒'} (${mine.mem.length}/${mine.max})<br>${mine.mem.map(nk).join(', ')}<br>${isH?`<button class='p' onclick='startRoom()'>Iniciar partida</button>`:''}<button onclick='leaveRm()'>${isH?'Fechar sala':'Sair da sala'}</button>${isH?reqs.map((r,i)=>`<br>${esc(r.nick)} quer entrar <button onclick='ansReq(${i},true)'>✔</button><button onclick='ansReq(${i},false)'>✖</button>`).join(''):''}</div>`;
+for(let s=1;s<=20;s++){const r=rm[s];h+=`<div class='pl'><span style='width:22px'>${s}</span>`+(r?`<span style='flex:1'>${r.n} ${r.pub?'🌐':'🔒'} ${r.mem.length}/${r.max}</span>`+(myIn?'':`<button onclick='joinR(${s})'>${r.mem.length>=r.max?'Cheia':'Entrar'}</button>`):`<span style='flex:1;color:var(--mu)'>livre</span>`+(myIn?'':`<button onclick='createM(${s})'>Criar</button>`))+'</div>'}
+$('#lL').innerHTML=h;
+const can=isH&&mine&&mine.mem.length<mine.max;
+$('#lR').innerHTML=`<h3 style='margin:0 0 6px'>Jogadores ativos (${act().length})</h3>`+act().slice().sort((a,b)=>(+b.presence.score||0)-(+a.presence.score||0)).map(p=>`<div class='pl'><b style='flex:1'>${nk(p)}${p.sameTab?' (você)':''}</b><span>🏆 ${+p.presence.score||0}</span>${can&&!p.sameTab&&!p.presence.in?`<button data-p='${esc(p.peer)}' onclick='invite(this.dataset.p)'>📨</button>`:''}</div>`).join('')}
+function createM(s){modal(`<h3>Criar sala ${s}</h3><p><input id='rn' maxlength='20' value='Sala de ${esc(NICK)}'></p><p>Máx. de jogadores: <select id='rx'>${[2,3,4,5,6].map(n=>`<option ${n==4?'selected':''}>${n}</option>`).join('')}</select></p><p><label><input type='radio' name='pv' value='1' checked> 🌐 Pública</label> <label><input type='radio' name='pv' value='0'> 🔒 Privada</label></p><button class='p' onclick='mk(${s})'>Criar</button> <button onclick='closeM()'>Cancelar</button>`)}
+async function mk(s){if(myIn)return;if(roomsMap()[s])return alert('Essa sala acabou de ser ocupada.');const n=clean($('#rn').value).slice(0,20)||'Sala',mx=+$('#rx').value,pub=document.querySelector('input[name=pv]:checked').value=='1';closeM();myIn=s;await R.presence({in:s,rm:{id:s,n,max:mx,pub}});lobRender()}
+const go=async s=>{myIn=s;await R.presence({in:s});lobRender()};
+function joinR(s){const r=roomsMap()[s];if(!r||myIn)return;if(r.mem.length>=r.max)return alert('Sala cheia.');if(r.pub)return go(s);const w=Math.ceil((lastReq+20000-Date.now())/1000);if(w>0)return alert('Aguarde '+w+'s para pedir de novo.');lastReq=Date.now();R.emit('req',{to:r.host.peer,nick:NICK,slot:s}).catch(()=>{});sys('Solicitação enviada ao criador da sala '+s+'.')}
+function onReq(m){const d=m.data||{},h=me();if(!h||d.to!==h.peer||!h.presence.rm||d.slot!==h.presence.rm.id||m.isMe)return;if(!reqs.some(r=>r.peer==m.peer)){reqs.push({peer:m.peer,nick:clean(d.nick).slice(0,14)||'?'});lobRender();snd('def')}}
+function ansReq(i,ok){const r=reqs[i];if(!r)return;reqs.splice(i,1);const h=me().presence.rm,rm=roomsMap()[h.id];if(ok&&rm&&rm.mem.length>=rm.max){ok=false;sys('Sala cheia.')}R.emit('resp',{to:r.peer,ok,slot:h.id}).catch(()=>{});lobRender()}
+function onResp(m){const d=m.data||{},h=me();if(!h||d.to!==h.peer)return;if(d.ok){const r=roomsMap()[d.slot];if(r&&r.host.peer==m.peer&&!myIn)go(d.slot)}else sys('Sua solicitação foi recusada.')}
+function invite(p){if(Date.now()-(lastInv[p]||0)<20000)return alert('Aguarde 20s para convidar essa pessoa de novo.');lastInv[p]=Date.now();R.emit('inv',{to:p,slot:myIn}).catch(()=>{});sys('Convite enviado.')}
+function onInv(m){const d=m.data||{},h=me();if(!h||d.to!==h.peer||myIn)return;const r=roomsMap()[d.slot];if(!r||r.host.peer!==m.peer)return;if(!invs.some(v=>v.peer==m.peer)){invs.push({peer:m.peer,slot:r.id,nick:String(r.host.presence.nick).slice(0,14)});lobRender();snd('def')}}
+function accInv(i){const v=invs[i];invs=[];const r=v&&roomsMap()[v.slot];if(!r||r.host.peer!=v.peer||r.mem.length>=r.max){lobRender();return alert('Convite expirado ou sala cheia.')}go(v.slot)}
+const decInv=i=>{invs.splice(i,1);lobRender()};
+function leaveRm(){const m=me();R.presence(m&&m.presence.rm?{rm:null,in:0}:{in:0});myIn=0;reqs=[];lobRender()}
+function startRoom(){const r=roomsMap()[myIn];if(!r)return;PEERS=r.mem.map(p=>p.peer);const ms=r.mem.map(p=>clean(p.presence.nick).slice(0,14));R.emit('chat',{n:'📣',t:NICK+' iniciou a partida da sala '+myIn}).catch(()=>{});$('#lob').style.display='none';setup();$('#np').value=Math.max(3,Math.min(6,ms.length));setup2();ms.slice(0,6).forEach((n,i)=>{const a=$('#n'+i),b=$('#b'+i);if(a){a.value=n;b.value='0'}})}
+function onChat(m){const d=m.data||{},l=document.createElement('div'),b=document.createElement('b'),c=$('#lcm');if(!c)return;b.textContent=String(d.n||'?').slice(0,14)+': ';l.append(b,String(d.t||'').slice(0,200));c.append(l);c.scrollTop=1e9}
+function sendL(){const i=$('#lci'),t=i.value.trim().slice(0,200);if(!t||!R)return;R.emit('chat',{n:NICK,t}).catch(()=>{});i.value=''}
+function sys(t){const c=$('#lcm');if(!c)return;const l=document.createElement('div');l.style.color='var(--mu)';l.textContent='• '+t;c.append(l);c.scrollTop=1e9}
+const win0=win;win=i=>{G.winner=i;win0(i);const p=G.pl[i];if(!window.WARNET&&!p.bot&&p.n==NICK){SC+=10;ls('warscore',SC);try{R&&R.presence({score:SC})}catch(e){}}};
+/* ---- v5: LAN (servidor WebSocket próprio no lugar do tempo real do claude.ai) ---- */
+(function(){if(typeof claude!='undefined'||location.protocol=='file:')return;
+let ws,up=false,id='',pe=[],hp=[],he={},opening;
+const room={peers:()=>pe,connected:()=>!!ws&&ws.readyState==1,
+presence:async patch=>{ws&&ws.readyState==1&&ws.send(JSON.stringify({t:'p',patch}))},
+emit:async(topic,data)=>{ws&&ws.readyState==1&&ws.send(JSON.stringify({t:'e',topic,data}))},
+on:(topic,f)=>{(he[topic]=he[topic]||[]).push(f);return()=>{he[topic]=he[topic].filter(x=>x!==f)}},
+onPeers:f=>{hp.push(f);return()=>{hp=hp.filter(x=>x!==f)}}};
+const SERVER='',qs=new URLSearchParams(location.search).get('server')||SERVER;window.WARNET=true;
+const open=()=>new Promise(res=>{ws=new WebSocket(qs?(/^wss?:/.test(qs)?qs:'wss://'+qs):(location.protocol=='https:'?'wss':'ws')+'://'+location.host);const to=setTimeout(()=>res(null),4000);
+ws.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(x){return}
+if(m.t=='hello'){id=m.id;up=true;clearTimeout(to);res(room)}
+else if(m.t=='peers'){pe=m.peers.map(p=>({peer:p.peer,presence:p.presence||{},kind:'viewer',isMe:p.peer==id,sameTab:p.peer==id,guest:false,by:null}));hp.forEach(f=>f({peers:pe,joined:[],left:[],updated:[]}))}
+else if(m.t=='ev')(he[m.topic]||[]).forEach(f=>f({topic:m.topic,data:m.data,peer:m.peer,isMe:m.peer==id,sameTab:m.peer==id,kind:'viewer',guest:false,by:null}))};
+ws.onclose=()=>{clearTimeout(to);res(null);if(up)modal('<h3>Conexão perdida</h3><button class="p" onclick="location.reload()">Reconectar</button>')};
+ws.onerror=()=>res(null)});
+window.claude={use:async n=>n=='room'?(opening=opening||open()):null}})();
+
+let NET=false,NETH=false,NETC=false,MYI=-1,MYPEER='',HOSTP='',PEERS=[],ALT=null,ASKR=null,bqt=0,hooked=false,PICKR=null,PK=null,psel=[],LK='',RANK=[];
+const alert0=window.alert.bind(window);window.alert=t=>ALT?ALT(t):alert0(t);
+function pop(k){const p=cur();if(NET&&G.turn!=MYI){if(NETH&&p.peer)R.emit('show',{to:p.peer,k});return}k=='o'?objM():cardsM()}
+/* início: mapeia jogadores da sala -> peers */
+const st1=start;start=()=>{const l0=loop;loop=()=>{};try{st1()}finally{loop=l0}
+NET=NETH=!!(R&&PEERS.length&&window.WARNET);
+if(NET){MYPEER=me().peer;G.pl.forEach((p,i)=>{if(PEERS[i]&&!p.bot)p.peer=PEERS[i]});MYI=G.pl.findIndex(p=>p.peer==MYPEER);if(MYI<0)NET=NETH=false;else G.view=MYI}
+if(NETH&&!hooked){hooked=true;R.onPeers(c=>{if(!NETH||!G||G.over)return;G.pl.forEach(p=>{if(p.peer&&!p.afk&&!c.peers.some(x=>x.peer==p.peer)){p.afk=true;lg('🔌 '+p.n+' desconectou');if(cur()===p&&!G.busy&&!G.lock)loop()}})})}
+loop()};
+/* host: transmite o estado (com objetivos e cartas alheios ocultos) */
+const r1=render;render=()=>{r1();if(NETH)bq()};
+function bq(){if(bqt)return;bqt=setTimeout(()=>{bqt=0;bcast()},60)}
+function bcast(){if(!G||!NETH)return;const b={...G,deck:null,seen:null,log:G.log.slice(0,40),rem:G.tl&&G.dl?Math.max(0,G.dl-Date.now()):0,hp:MYPEER};
+G.pl.forEach((p,i)=>{if(!p.peer||p.peer==MYPEER)return;R.emit('gs',{to:p.peer,s:{...b,you:i,pl:G.pl.map((q,j)=>j==i?q:{...q,obj:null,cards:q.cards.map(()=>null)})}})})}
+const ru0=rollUI;rollUI=(...a)=>{if(NETH)R.emit('dice',{a});return ru0(...a)};
+const am0=askMove;askMove=(mn,mx)=>{const p=cur();if(NETH&&p.peer&&p.peer!=MYPEER)return new Promise(r=>{ASKR={f:r,mn,mx};R.emit('ask',{to:p.peer,mn,mx});setTimeout(()=>{if(ASKR&&ASKR.f===r){ASKR=null;r(mn)}},45000)});return am0(mn,mx)};
+/* host: executa ações dos jogadores remotos */
+function onAct(m){const d=m.data||{};if(!NETH||!G||G.over||d.to!==MYPEER)return;const i=G.pl.findIndex(p=>p.peer==m.peer);if(i<0||i!=G.turn)return;
+if(d.k=='ans'){if(ASKR){const a=ASKR;ASKR=null;a.f(Math.max(a.mn,Math.min(a.mx,+d.v||a.mn)))}return}
+if(d.k=='ansc'){if(PICKR){const f=PICKR.f;PICKR=null;f((d.sel||[]).map(Number))}return}
+ALT=t=>R.emit('msg',{to:m.peer,t});
+try{if(d.k=='click'&&d.i>=0&&d.i<42){const s0=step;step=[1,5,10].includes(+d.st)?+d.st:1;clickT(+d.i);step=s0}
+else if(d.k=='next')nextPhase();else if(d.k=='desel'){if(G.sel!=null&&(G.phase=='attack'||G.phase=='move')){G.sel=null;render()}}
+else if(d.k=='trade'){const p=G.pl[i],idx=[...new Set((d.idx||[]).map(Number))].filter(x=>x>=0&&x<p.cards.length);if(G.phase=='reinforce'&&!G.lock&&okSet(idx.map(x=>p.cards[x]))){trade(i,idx);render()}else alert('Troca inválida.')}}
+finally{ALT=null}}
+/* cliente: manda ações ao host e desenha o estado recebido */
+const ck0=clickT;clickT=i=>{if(NETC)return R.emit('act',{to:HOSTP,k:'click',i,st:step});if(NETH&&G&&G.turn!=MYI&&!ALT)return;ck0(i)};
+const np1=nextPhase;nextPhase=()=>{if(NETC)return R.emit('act',{to:HOSTP,k:'next'});if(NETH&&G&&G.turn!=MYI&&!ALT)return;np1()};
+const dt0=doTrade;doTrade=()=>{if(NETC){const p=cur();if(G.phase!='reinforce'||G.turn!=MYI)return alert('Troque cartas na sua fase de distribuição.');if(!okSet(csel.map(i=>p.cards[i])))return alert('Escolha 3 cartas válidas.');R.emit('act',{to:HOSTP,k:'trade',idx:csel});csel=[];closeM();return}dt0()};
+function onGs(m){const d=m.data||{},s=d.s;if(!s||!me()||d.to!==me().peer)return;const was=G&&G.over,first=!NETC;NET=NETC=true;MYI=s.you;HOSTP=s.hp;s.view=MYI;s.dl=s.tl&&s.rem!=null?Date.now()+s.rem:0;G=s;
+if(first){$('#lob').style.display='none';closeM();R.onPeers(c=>{if(NETC&&G&&!G.over&&!c.peers.some(x=>x.peer==HOSTP)){G.over=true;modal('<h3>O anfitrião saiu</h3><button class="p" onclick="location.reload()">Voltar</button>')}})}
+render();if(s.over&&!was)win(s.winner)}
+function onShow(m){const d=m.data||{};if(!me()||d.to!==me().peer)return;setTimeout(()=>d.k=='o'?objM():cardsM(),200)}
+function onAsk(m){const d=m.data||{};if(!me()||d.to!==me().peer)return;am0(+d.mn,+d.mx).then(v=>R.emit('act',{to:HOSTP,k:'ans',v}))}
+function onDice(m){const a=(m.data||{}).a;if(NETC&&Array.isArray(a)&&a.length>=4)rollUI(...a)}
+function onMsg(m){const d=m.data||{};if(me()&&d.to===me().peer)alert0(String(d.t).slice(0,100))}
+function onGc(m){const d=m.data||{};if(typeof d.n=='string'&&/^#[0-9a-f]{6}$/i.test(d.c))chatAdd({n:clean(d.n).slice(0,14),c:d.c,t:clean(d.t).slice(0,120)})}
+function sendC(){const i=$('#ci'),t=i.value.replace(/[<>&"']/g,'').trim().slice(0,120);if(!t||!G)return;const v=G.pl[G.view!=null?G.view:G.turn],m={n:v.n,c:v.c,t};if(NET&&R)R.emit('gc',m);else{chatAdd(m);try{bc&&bc.postMessage(m)}catch(e){}}i.value=''}
+
+/* ---- v6: troca visível, sons, voltar ao lobby, cartas do eliminado, pontuação online ---- */
+const tv=()=>{const k=G.trades;return k<5?4+2*k:15+5*(k-5)};
+const r2=render;render=()=>{r2();if(!G)return;const a=$('#act');if(a)a.insertAdjacentHTML('beforeend',`<p>🔁 Próxima troca de cartas vale <b>${tv()}</b> tropas</p>`);
+const k=G.phase=='claim'?'c'+G.turn+'_'+G.ter.filter(t=>t.o>=0).length:'T'+G.tn,mine=NET?G.turn==MYI:(!cur().bot&&!cur().afk);if(k!=LK){LK=k;if(mine&&!G.over)snd('turn')}};
+const cm1=cardsM;cardsM=()=>{cm1();$('#mb').insertAdjacentHTML('afterbegin',`<p style='color:var(--ac)'>🔁 Próxima troca: +${tv()} tropas</p>`)};
+function voice(f0,f1,d,fm,v){const t=AC.currentTime,o=AC.createOscillator(),g=AC.createGain(),b=AC.createBiquadFilter(),l=AC.createOscillator(),lg2=AC.createGain();o.type='sawtooth';o.frequency.setValueAtTime(f0,t);o.frequency.linearRampToValueAtTime(f1,t+d);b.type='bandpass';b.Q.value=4;b.frequency.setValueAtTime(fm[0],t);b.frequency.linearRampToValueAtTime(fm[1],t+d);l.frequency.value=6;lg2.gain.value=f0*.03;l.connect(lg2).connect(o.frequency);g.gain.setValueAtTime(.001,t);g.gain.linearRampToValueAtTime(v,t+.05);g.gain.exponentialRampToValueAtTime(.001,t+d);o.connect(b).connect(g).connect(AC.destination);o.start(t);l.start(t);o.stop(t+d);l.stop(t+d)}
+function fx2(k){try{AC=AC||new AudioContext();AC.resume();const t=AC.currentTime;
+if(k=='ah')voice(330,150,1,[900,500],.6);
+else if(k=='yeah'){voice(200,330,.35,[400,2200],.5);setTimeout(()=>voice(330,480,.6,[2200,900],.5),300)}
+else if(k=='turn'){tone(660,t,.15,'sine',.25);tone(880,t+.15,.25,'sine',.25)}
+else if(k=='fan'){[523,523,523,659,784,659,784,1047].forEach((f,i)=>tone(f,t+i*.16,.28,'square',.12));[1047,659,523].forEach(f=>tone(f,t+1.3,.9,'triangle',.22))}}catch(e){}}
+const snd1=snd;snd=k=>{if(!S.fx)return;if(k=='ah'||k=='yeah'||k=='turn'||k=='fan')return fx2(k);snd1(k)};
+const ru1=rollUI;rollUI=(...a)=>{const mine=G&&G.view!=null&&cur()===G.pl[G.view];if(mine&&a[2]!=a[3])setTimeout(()=>snd(a[3]>a[2]?'yeah':'ah'),S.speed=='fast'?260:1100);return ru1(...a)};
+/* cartas do jogador eliminado: só leva o que cabe (máx. 5) e escolhe quais */
+async function takeCards(Q,P){const cs=Q.cards.splice(0),room=5-P.cards.length;if(!cs.length)return;if(cs.length<=room)P.cards.push(...cs);else if(room<=0||P.bot){const k=room>0?cs.splice(0,room):[];P.cards.push(...k);G.deck.push(...cs)}else await pickCards(cs,room,P)}
+function pickCards(cs,room,P){return new Promise(r=>{const fin=sel=>{const keep=[...new Set(sel)].filter(x=>x>=0&&x<cs.length).slice(0,room).map(x=>cs[x]);P.cards.push(...keep);G.deck.push(...cs.filter(c=>!keep.includes(c)));r()};
+if(NETH&&P.peer&&P.peer!=MYPEER){PICKR={f:fin};R.emit('askc',{to:P.peer,cs:cs.map(c=>({s:c.s,t:c.t})),room});setTimeout(()=>{if(PICKR&&PICKR.f===fin){PICKR=null;fin([...Array(room).keys()])}},45000)}else pickM(cs,room,fin)})}
+function pickM(cs,room,fin){psel=[];const draw=()=>modal(`<h3>Cartas do jogador eliminado</h3><p>Você tem espaço para ${room}. Escolha ${room}:</p>`+cs.map((c,i)=>`<button class='card ${psel.includes(i)?'sel':''}' onclick='pk(${i})'><b>${c.s<3?SY[c.s]:'▲■●'}</b><br>${c.t>=0?N[c.t]:'Coringa'}</button>`).join('')+`<p><button class='p' onclick='pkOk()'>Confirmar</button></p>`);PK={cs,room,fin,draw};draw()}
+function pk(i){psel.includes(i)?psel=psel.filter(x=>x!=i):psel.length<PK.room&&psel.push(i);PK.draw()}
+function pkOk(){if(psel.length!=Math.min(PK.room,PK.cs.length))return alert('Escolha '+PK.room+' carta(s).');closeM();PK.fin(psel)}
+function onAskc(m){const d=m.data||{};if(!me()||d.to!==me().peer||!Array.isArray(d.cs))return;pickM(d.cs.slice(0,10),Math.max(1,+d.room||1),sel=>R.emit('act',{to:HOSTP,k:'ansc',sel}))}
+/* clicar fora desfaz a seleção */
+function desel(){if(!G||G.over||G.lock||G.busy)return;if(NETC)return R.emit('act',{to:HOSTP,k:'desel'});if((NETH&&G.turn!=MYI)||cur().bot)return;if(G.sel!=null&&(G.phase=='attack'||G.phase=='move')){G.sel=null;render()}}
+/* fim da partida -> volta ao lobby */
+function backLobby(){closeM();G=null;NET=NETH=NETC=false;MYI=-1;PEERS=[];myIn=0;reqs=[];invs=[];LK='';ALT=null;ASKR=null;['#map','#left','#act','#blog','#ptag','#tmr'].forEach(s=>$(s).innerHTML='');if(!R||!$('#lL'))return nickScr();R.presence({in:0,rm:null});$('#lob').style.display='block';lobRender()}
+/* pontuação: com servidor, quem confirma é o servidor; sem servidor, fica local */
+const win2=win;win=i=>{win2(i);setTimeout(()=>snd('fan'),500);const p=G.pl[i];
+if(window.WARNET&&R){if(NETH)R.emit('_res',{winner:p.n,players:G.pl.filter(q=>!q.bot&&q.peer).map(q=>q.n)})}}
+const TOK=ls('wartok')||(()=>{const t=Math.random().toString(36).slice(2)+Math.random().toString(36).slice(2)+Date.now().toString(36);ls('wartok',t);return t})();
+function login(){return new Promise(res=>{let d=0;const f=ok=>{if(!d){d=1;res(ok)}};R.on('_you',m=>{SC=+((m.data||{}).p)||0;f(true)});R.on('_deny',()=>{alert0('Esse nick já pertence a outro jogador. Escolha outro.');f(false)});R.emit('_login',{nick:NICK,tok:TOK});setTimeout(()=>f(true),3000)})}
+const lr0=lobRender;lobRender=()=>{lr0();const r=$('#lR');if(r&&RANK.length)r.insertAdjacentHTML('beforeend','<h3 style="margin:14px 0 6px">🏅 Ranking geral</h3>'+RANK.map((x,i)=>`<div class="pl"><span style="width:20px">${i+1}</span><b style="flex:1">${esc(String(x.n).slice(0,14))}</b><span>${+x.p||0} pts · ${+x.w||0}V/${+x.g||0}</span></div>`).join(''))};
+nickScr();
+</script></body></html>
